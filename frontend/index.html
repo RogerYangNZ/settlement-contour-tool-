@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Settlement Contour Tool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="/static/style.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+</head>
+<body>
+<header>
+  <h1>Settlement Contour Tool</h1>
+  <span class="subtitle">CSV &rarr; IDW interpolation &rarr; contours &rarr; manual edit &rarr; DXF</span>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+
+    <div class="section" id="section-upload">
+      <h2>1. Load CSV</h2>
+      <div class="dropzone" id="dropzone">Drop a CSV here or click to browse<br><input type="file" id="file-input" accept=".csv,.txt" style="display:none" /></div>
+      <div id="mapping" style="display:none; margin-top:10px;">
+        <div class="field">
+          <label>Easting (X) column</label>
+          <select id="col-x"></select>
+        </div>
+        <div class="field">
+          <label>Northing (Y) column</label>
+          <select id="col-y"></select>
+        </div>
+        <div class="field">
+          <label>Settlement value (Z) column</label>
+          <select id="col-z"></select>
+        </div>
+        <div class="field">
+          <label>Point ID column (optional)</label>
+          <select id="col-id"></select>
+        </div>
+        <div style="overflow-x:auto; margin-top:8px;">
+          <table class="preview" id="preview-table"></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="section-underlays" style="display:none;">
+      <h2>Underlays (optional)</h2>
+      <div class="field">
+        <label>LINZ Basemaps API key</label>
+        <input type="text" id="linz-api-key" placeholder="c01..." />
+        <div class="status" style="font-size:10.5px; margin-top:2px;">
+          Free key from <a class="link" href="https://basemaps.linz.govt.nz" target="_blank" rel="noopener">basemaps.linz.govt.nz</a> (Login &rarr; API Keys). Stored in your browser.
+        </div>
+      </div>
+      <div class="field">
+        <label>Basemap</label>
+        <select id="basemap-style">
+          <option value="off">Off</option>
+          <option value="aerial">LINZ Aerial imagery</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Opacity</label>
+        <div class="slider-row">
+          <input type="range" id="basemap-opacity" min="0" max="100" step="5" value="60" />
+          <span id="basemap-opacity-value">60%</span>
+        </div>
+      </div>
+      <div class="status" id="underlay-status"></div>
+    </div>
+
+    <div class="section" id="section-settings" style="display:none;">
+      <h2>2. Interpolation &amp; contours</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>Contour interval (mm)</label>
+          <input type="number" id="interval" value="5" step="0.5" min="0.1" />
+        </div>
+        <div class="field">
+          <label>IDW power</label>
+          <input type="number" id="power" value="2" step="0.5" min="0.5" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Grid resolution</label>
+          <input type="number" id="resolution" value="150" step="10" min="20" max="400" />
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button id="btn-generate" style="width:100%">Generate contours</button>
+        </div>
+      </div>
+      <div class="status" id="generate-status"></div>
+    </div>
+
+    <div class="section" id="section-legend" style="display:none;">
+      <h2>3. Layers (click to select / toggle)</h2>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="section" id="section-edit" style="display:none;">
+      <h2>4. Manual editing</h2>
+      <div class="btn-row">
+        <button class="secondary" id="btn-tool-select">Select / drag</button>
+        <button class="secondary" id="btn-tool-add">Insert vertex</button>
+        <button class="secondary" id="btn-tool-delete">Delete vertex</button>
+        <button class="secondary" id="btn-tool-cut">Delete segment</button>
+      </div>
+      <p class="status" style="margin-top:8px;">Select tool, then click a contour line. Drag vertices to reshape. Insert-vertex: click on a line segment. Delete-vertex: click a vertex. Delete-segment: click a line to cut it at that segment (splits open lines, opens closed loops).</p>
+      <div class="field" style="margin-top:8px;">
+        <label>Smoothing (Chaikin corner-cutting)</label>
+        <div class="slider-row">
+          <input type="range" id="smooth-slider" min="0" max="6" step="1" value="0" />
+          <span id="smooth-value">0</span>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="smooth-all" />
+        <label for="smooth-all">Apply to all lines (unchecked = selected line only)</label>
+      </div>
+      <div class="btn-row">
+        <button class="secondary" id="btn-reset-line">Reset selected line</button>
+        <button class="danger" id="btn-reset-all">Reset all edits</button>
+      </div>
+    </div>
+
+    <div class="section" id="section-export" style="display:none;">
+      <h2>5. Export</h2>
+      <div class="field">
+        <label>Layer prefix</label>
+        <input type="text" id="layer-prefix" value="SETTLEMENT" />
+      </div>
+      <div class="field">
+        <label>File name</label>
+        <input type="text" id="file-name" value="settlement_contours.dxf" />
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="include-points" checked />
+        <label for="include-points">Include survey points</label>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="include-labels" checked />
+        <label for="include-labels">Include level / ID labels</label>
+      </div>
+      <button id="btn-export" style="width:100%">Export all contours (DXF)</button>
+      <button id="btn-export-selected" class="secondary" style="width:100%; margin-top:6px;">Export selected line (DXF)</button>
+      <div class="status" id="export-status"></div>
+    </div>
+
+  </div>
+
+  <div class="canvas-wrap">
+    <div class="toolbar" id="view-toolbar">
+      <button class="secondary" id="btn-zoom-fit">Fit</button>
+      <button class="secondary" id="btn-toggle-points">Points</button>
+    </div>
+    <svg id="canvas-svg"></svg>
+    <div class="hint" id="canvas-hint">Load a CSV to begin.</div>
+    <div class="attribution" id="basemap-attribution" style="display:none;">Basemap &copy; LINZ</div>
+  </div>
+</div>
+
+<script src="/static/config.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

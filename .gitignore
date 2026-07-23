@@ -1,0 +1,13 @@
+# Python
+backend/.venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/settings.json
+
+# Exported artifacts
+*.dxf
