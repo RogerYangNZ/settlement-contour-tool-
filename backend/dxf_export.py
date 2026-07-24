@@ -67,16 +67,7 @@ def export_dxf(
               f"{layer_prefix}_SURVEY_POINTS" layer.
     """
     doc = ezdxf.new(dxfversion="R2010", setup=True)
-    # Horizontal coords come in from a projected survey grid (metres, e.g.
-    # NZTM/UTM). ezdxf.units.MM would tell ArcGIS to rescale the XY by 1000,
-    # dumping everything into a tiny cluster on import — the observed bug.
-    # Elevation (Z) still holds the settlement value in whatever unit the
-    # caller supplied; that's a separate axis and unaffected by INSUNITS.
-    doc.units = ezdxf.units.M
-    # Any XDATA app id has to exist in the APPID table before use, or strict
-    # readers (ArcGIS included) reject or silently drop the entity.
-    if XDATA_APP_ID not in doc.appids:
-        doc.appids.new(XDATA_APP_ID)
+    doc.units = ezdxf.units.MM
     msp = doc.modelspace()
 
     levels = sorted({c["level"] for c in contours}) if contours else []
