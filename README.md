@@ -22,7 +22,11 @@ since nothing off the shelf offered that combination.
 4. **Edit by hand** — drag vertices, insert new ones by clicking on a line,
    delete vertices, and apply a Chaikin corner-cutting smoothing slider per
    line or to everything at once.
-5. **Export to DXF** — one layer per contour level (e.g. `SETTLEMENT_5`,
+5. **Overlay a georeferenced DWG/DXF** (optional) — drop in a site drawing
+   drawn in the same easting/northing (NZTM) as your survey points and it
+   renders as a read-only underlay behind the contours, so you can see the
+   contours in the context of the site plan.
+6. **Export to DXF** — one layer per contour level (e.g. `SETTLEMENT_5`,
    `SETTLEMENT_10`), each polyline's elevation (Z) set to the settlement
    value, plus optional survey point markers and labels. Opens directly in
    QGIS/ArcGIS as a normal DXF vector layer.
@@ -31,13 +35,33 @@ since nothing off the shelf offered that combination.
 
 Requires Python 3.10+.
 
+**First-time setup** (creates an isolated virtual environment so `pip`/`uvicorn`
+are available — on macOS they aren't installed globally):
+
 ```bash
 cd backend
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app:app --reload --port 8420
 ```
 
-Then open **http://127.0.0.1:8420** in a browser.
+**Every time after that**, just activate the environment and run:
+
+```bash
+cd backend
+source .venv/bin/activate
+uvicorn app:app --reload --port 8420
+```
+
+Then open **http://127.0.0.1:8420** in a browser. Stop the server with `Ctrl+C`.
+
+> On Windows the activate command is `.venv\Scripts\activate` instead of
+> `source .venv/bin/activate`.
+
+**Optional — DWG underlay:** to import `.dwg` drawings you also need GNU
+LibreDWG's `dwg2dxf` converter on your PATH (`brew install libredwg` on macOS).
+`.dxf` drawings import without it. Nothing else in the tool requires it.
 
 ## CSV format
 
@@ -80,11 +104,15 @@ settlement-contour-tool/
     interpolation.py   IDW: scattered points -> regular grid
     contouring.py        grid -> contour lines (contourpy) at any interval
     dxf_export.py         contours -> DXF (layer per level, elevation embedded)
-    app.py                 FastAPI app: /api/generate, /api/export, serves frontend
+    dwg_import.py         DWG/DXF drawing -> flat polylines (via LibreDWG + ezdxf)
+    app.py                 FastAPI app: wires the routers, serves the frontend
+    routers/               contours.py, export.py, dwg.py (API endpoints)
+    schemas.py             pydantic request models
     requirements.txt
   frontend/
     index.html             upload, column mapping, settings, legend, edit tools
-    app.js                   D3-based rendering, pan/zoom, vertex editing, smoothing
+    config.js              optional LINZ Basemaps API key
+    js/                    ES modules: rendering, pan/zoom, editing, basemap, dwg
     style.css
   sample_data/
     sample_settlement.csv  synthetic test data (60 points, bowl-shaped settlement)

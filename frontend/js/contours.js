@@ -6,6 +6,7 @@ import { buildProjection } from './projection.js';
 import { renderCanvas } from './render.js';
 import { renderLegend } from './legend.js';
 import { fitView } from './canvas.js';
+import { renderDwg } from './dwg.js';
 
 export async function generate() {
   if (state.points.length < 3) {
@@ -53,6 +54,7 @@ export async function generate() {
     buildProjection(data.grid_bounds);
     renderLegend();
     renderCanvas();
+    renderDwg();   // projection changed — re-place the underlay to match
     fitView();
   } catch (err) {
     setStatus('generate-status', 'Error: ' + err.message, 'error');

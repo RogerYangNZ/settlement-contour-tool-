@@ -66,6 +66,28 @@
         </div>
       </div>
       <div class="status" id="underlay-status"></div>
+
+      <hr style="border:none; border-top:1px solid var(--border, #333); margin:12px 0;" />
+      <div class="field">
+        <label>DWG / DXF drawing</label>
+        <input type="file" id="dwg-input" accept=".dwg,.dxf" />
+        <div class="status" style="font-size:10.5px; margin-top:2px;">
+          Drawn in NZTM easting/northing (same as your survey points). Converted locally via LibreDWG.
+        </div>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="dwg-show" checked />
+        <label for="dwg-show">Show drawing</label>
+      </div>
+      <div class="field">
+        <label>Opacity</label>
+        <div class="slider-row">
+          <input type="range" id="dwg-opacity" min="0" max="100" step="5" value="80" />
+          <span id="dwg-opacity-value">80%</span>
+        </div>
+      </div>
+      <button class="secondary" id="dwg-remove" style="width:100%">Remove drawing</button>
+      <div class="status" id="dwg-status"></div>
     </div>
 
     <div class="section" id="section-settings" style="display:none;">

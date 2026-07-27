@@ -11,6 +11,7 @@ import { initEditing } from './editing.js';
 import { initSmoothing } from './smoothing.js';
 import { initExport } from './export.js';
 import { initBasemap } from './basemap.js';
+import { initDwg } from './dwg.js';
 import { initRender } from './render.js';
 
 initCsv();
@@ -19,4 +20,5 @@ initEditing();     // also sets the initial tool ('select')
 initSmoothing();
 initExport();
 initBasemap();
+initDwg();
 initRender();

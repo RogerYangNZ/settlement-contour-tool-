@@ -10,5 +10,6 @@ export const state = {
   tool: 'select',        // select | add | delete | cut
   showPoints: true,
   projection: null,      // {scale,worldW,worldH,xMin,yMin,xMax,yMax}
+  dwg: null,             // {polylines:[[[x,y]]], texts:[{x,y,text,height}], bounds}
   nextId: 1,
 };
