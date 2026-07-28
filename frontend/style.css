@@ -91,6 +91,60 @@ header .subtitle {
   margin: 0 0 10px 0;
 }
 
+/* Collapsible sidebar groups (each holds one or more .subsection blocks). */
+.group {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.group-header {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  padding: 11px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.group-header:hover { color: var(--text); filter: none; }
+.group-header::before {
+  content: '\25BE';   /* ▾ */
+  font-size: 10px;
+  transition: transform 0.15s;
+}
+.group.collapsed .group-header::before { transform: rotate(-90deg); }
+.group.collapsed .group-body { display: none; }
+
+.group-body {
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.subsection + .subsection {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.subsection h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
 .field {
   margin-bottom: 8px;
 }

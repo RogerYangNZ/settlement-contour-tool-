@@ -25,6 +25,20 @@ from routers import contours, dwg, export
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
 
+# This is a single-user local dev tool with no build step or asset versioning,
+# so browsers happily serve a stale cached copy of the JS/CSS after we edit it
+# (ES modules are cached especially aggressively). Force revalidation on every
+# request so a plain refresh always picks up the latest frontend — otherwise
+# edits appear "not to work" until a manual hard reload.
+NO_CACHE = "no-cache, no-store, must-revalidate"
+
+
+class NoCacheStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = NO_CACHE
+        return response
+
 app = FastAPI(title="Settlement Contour Tool")
 app.add_middleware(
     CORSMiddleware,
@@ -40,7 +54,10 @@ app.include_router(dwg.router)
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    return (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
+    return HTMLResponse(
+        (FRONTEND_DIR / "index.html").read_text(encoding="utf-8"),
+        headers={"Cache-Control": NO_CACHE},
+    )
 
 
-app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+app.mount("/static", NoCacheStaticFiles(directory=str(FRONTEND_DIR)), name="static")

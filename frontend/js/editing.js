@@ -161,6 +161,22 @@ export function deleteSegmentAt(d, event) {
   renderCanvas();
 }
 
+// Delete the whole selected contour line (not just a vertex or segment).
+// Useful when an import brings in several lines at one level and you want to
+// drop one outright. Prunes the level from the legend if it has no lines left.
+export function deleteSelectedLine() {
+  const idx = state.contours.findIndex(x => x.id === state.selectedId);
+  if (idx < 0) return;   // nothing selected — no-op
+  const { level } = state.contours[idx];
+  state.contours.splice(idx, 1);
+  state.selectedId = null;
+  if (!state.contours.some(c => c.level === level)) {
+    state.levels = state.levels.filter(l => l !== level);
+  }
+  renderLegend();
+  renderCanvas();
+}
+
 export function pointToSegmentDist(px, py, x1, y1, x2, y2) {
   const dx = x2 - x1, dy = y2 - y1;
   const len2 = dx * dx + dy * dy || 1e-9;
@@ -183,5 +199,6 @@ export function initEditing() {
   document.getElementById('btn-tool-add').addEventListener('click', () => setTool('add'));
   document.getElementById('btn-tool-delete').addEventListener('click', () => setTool('delete'));
   document.getElementById('btn-tool-cut').addEventListener('click', () => setTool('cut'));
+  document.getElementById('btn-delete-line').addEventListener('click', deleteSelectedLine);
   setTool('select');
 }

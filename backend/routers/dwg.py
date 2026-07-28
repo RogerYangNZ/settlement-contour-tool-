@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from dwg_import import DwgImportError, load_drawing
+from dwg_import import DwgImportError, load_contours, load_drawing
 
 router = APIRouter(prefix="/api", tags=["dwg"])
 
@@ -21,5 +21,19 @@ async def import_dwg(file: UploadFile = File(...)):
         raise HTTPException(413, "File too large (50 MB max).")
     try:
         return load_drawing(data, file.filename or "upload.dwg")
+    except DwgImportError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.post("/import-contours")
+async def import_contours(file: UploadFile = File(...)):
+    """Import a contour DXF/DWG as editable contour lines (level auto-detected)."""
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "Empty file.")
+    if len(data) > MAX_BYTES:
+        raise HTTPException(413, "File too large (50 MB max).")
+    try:
+        return load_contours(data, file.filename or "upload.dxf")
     except DwgImportError as exc:
         raise HTTPException(422, str(exc)) from exc

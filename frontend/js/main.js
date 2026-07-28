@@ -5,8 +5,10 @@
  * behaviour, fit/resize handlers) — the other modules import it too, but the
  * explicit import documents that it must be initialised. */
 import './canvas.js';
+import { initPanel } from './panel.js';
 import { initCsv } from './csv.js';
 import { initGenerate } from './contours.js';
+import { initImportContours } from './importContours.js';
 import { initEditing } from './editing.js';
 import { initSmoothing } from './smoothing.js';
 import { initExport } from './export.js';
@@ -14,8 +16,10 @@ import { initBasemap } from './basemap.js';
 import { initDwg } from './dwg.js';
 import { initRender } from './render.js';
 
+initPanel();       // collapsible sidebar groups
 initCsv();
 initGenerate();
+initImportContours();
 initEditing();     // also sets the initial tool ('select')
 initSmoothing();
 initExport();
