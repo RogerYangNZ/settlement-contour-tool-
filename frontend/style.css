@@ -97,6 +97,11 @@ header .subtitle {
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
+  /* The sidebar is a column flexbox; `overflow: hidden` above drops a flex
+     item's automatic min-height to 0, so without this the groups would shrink
+     to fit the sidebar and clip their own content instead of letting the
+     sidebar scroll. Keep each group at its natural height. */
+  flex-shrink: 0;
 }
 
 .group-header {
