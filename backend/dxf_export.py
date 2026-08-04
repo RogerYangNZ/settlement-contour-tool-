@@ -116,6 +116,14 @@ def export_dxf(
     # setup=False keeps the file minimal (no unused linetypes / text styles /
     # dimstyles / arrow blocks), matching the lean structure of the source DXFs.
     doc = ezdxf.new(dxfversion="R2007", setup=False)
+    # Register our XDATA app name in the APPID table *before* any set_xdata below.
+    # ezdxf will happily attach 1001 XDATA without registering the app, producing a
+    # spec-violating file (a 1001 app-name must have a matching APPID entry). AutoCAD
+    # tolerates the violation, but ArcGIS's stricter DXF importer drops the offending
+    # entities — the contours then "open but empty". Registering it here keeps the
+    # LEVEL XDATA (round-tripped back by dwg_import.load_contours) and stays valid.
+    if XDATA_APP_ID not in doc.appids:
+        doc.appids.add(XDATA_APP_ID)
     # Horizontal coordinates are NZTM easting/northing in metres, so declare
     # metres (matches the source contour DXFs we import). The settlement value
     # carried as Z is millimetres, but DXF has one unit flag; metres is the
@@ -165,6 +173,8 @@ def export_dxf(
         if is_closed and len(points3d) > 1 and points3d[0] != points3d[-1]:
             points3d.append(points3d[0])
         entity = _add_contour_entity(msp, points3d, layer_name)
+        # XDATA_APP_ID must be registered in doc.appids (done above) or strict
+        # readers like ArcGIS drop this entity.
         entity.set_xdata(XDATA_APP_ID, [(1000, "LEVEL"), (1040, float(level))])
 
         if add_labels and len(points2d) > 0:
