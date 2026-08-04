@@ -9,7 +9,7 @@ import { insertVertexAt, deleteSegmentAt, selectContour, renderVertices } from '
 export function renderCanvas() {
   document.getElementById('canvas-hint').textContent = state.contours.length
     ? 'Tool: ' + state.tool + ' — click a line to select it.'
-    : 'Load a CSV to begin.';
+    : 'Load a basemap, drawing, or CSV to begin.';
 
   // Contours
   const projectedContours = state.contours

@@ -16,6 +16,64 @@
 <div class="layout">
   <div class="sidebar">
 
+    <!-- UNDERLAYS: georeferenced backdrops (basemap first, then a CAD drawing).
+         Shown first so you can start from a basemap/drawing before any data. -->
+    <div class="group" id="group-underlays">
+      <button class="group-header" aria-expanded="true">Underlays</button>
+      <div class="group-body">
+
+        <div class="subsection" id="sub-basemap">
+          <h3>LINZ basemap</h3>
+          <div class="field">
+            <label>LINZ Basemaps API key</label>
+            <input type="text" id="linz-api-key" placeholder="c01..." />
+            <div class="status" style="font-size:10.5px; margin-top:2px;">
+              Free key from <a class="link" href="https://basemaps.linz.govt.nz" target="_blank" rel="noopener">basemaps.linz.govt.nz</a> (Login &rarr; API Keys). Stored in your browser.
+            </div>
+          </div>
+          <div class="field">
+            <label>Basemap</label>
+            <select id="basemap-style">
+              <option value="off">Off</option>
+              <option value="aerial">LINZ Aerial imagery</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Opacity</label>
+            <div class="slider-row">
+              <input type="range" id="basemap-opacity" min="0" max="100" step="5" value="60" />
+              <span id="basemap-opacity-value">60%</span>
+            </div>
+          </div>
+          <div class="status" id="underlay-status"></div>
+        </div>
+
+        <div class="subsection" id="sub-drawing">
+          <h3>DWG / DXF drawing</h3>
+          <div class="field">
+            <input type="file" id="dwg-input" accept=".dwg,.dxf" />
+            <div class="status" style="font-size:10.5px; margin-top:2px;">
+              Drawn in NZTM easting/northing (same as your survey points). Converted locally via LibreDWG.
+            </div>
+          </div>
+          <div class="toggle-row">
+            <input type="checkbox" id="dwg-show" checked />
+            <label for="dwg-show">Show drawing</label>
+          </div>
+          <div class="field">
+            <label>Opacity</label>
+            <div class="slider-row">
+              <input type="range" id="dwg-opacity" min="0" max="100" step="5" value="80" />
+              <span id="dwg-opacity-value">80%</span>
+            </div>
+          </div>
+          <button class="secondary" id="dwg-remove" style="width:100%">Remove drawing</button>
+          <div class="status" id="dwg-status"></div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- DATA: bring contours in, either from a CSV or an existing contour file -->
     <div class="group" id="group-data">
       <button class="group-header" aria-expanded="true">Data</button>
@@ -79,63 +137,6 @@
             </div>
           </div>
           <div class="status" id="generate-status"></div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- UNDERLAYS: optional georeferenced backdrops behind the contours -->
-    <div class="group" id="group-underlays" style="display:none;">
-      <button class="group-header" aria-expanded="false">Underlays</button>
-      <div class="group-body">
-
-        <div class="subsection" id="sub-basemap">
-          <h3>LINZ basemap</h3>
-          <div class="field">
-            <label>LINZ Basemaps API key</label>
-            <input type="text" id="linz-api-key" placeholder="c01..." />
-            <div class="status" style="font-size:10.5px; margin-top:2px;">
-              Free key from <a class="link" href="https://basemaps.linz.govt.nz" target="_blank" rel="noopener">basemaps.linz.govt.nz</a> (Login &rarr; API Keys). Stored in your browser.
-            </div>
-          </div>
-          <div class="field">
-            <label>Basemap</label>
-            <select id="basemap-style">
-              <option value="off">Off</option>
-              <option value="aerial">LINZ Aerial imagery</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Opacity</label>
-            <div class="slider-row">
-              <input type="range" id="basemap-opacity" min="0" max="100" step="5" value="60" />
-              <span id="basemap-opacity-value">60%</span>
-            </div>
-          </div>
-          <div class="status" id="underlay-status"></div>
-        </div>
-
-        <div class="subsection" id="sub-drawing">
-          <h3>DWG / DXF drawing</h3>
-          <div class="field">
-            <input type="file" id="dwg-input" accept=".dwg,.dxf" />
-            <div class="status" style="font-size:10.5px; margin-top:2px;">
-              Drawn in NZTM easting/northing (same as your survey points). Converted locally via LibreDWG.
-            </div>
-          </div>
-          <div class="toggle-row">
-            <input type="checkbox" id="dwg-show" checked />
-            <label for="dwg-show">Show drawing</label>
-          </div>
-          <div class="field">
-            <label>Opacity</label>
-            <div class="slider-row">
-              <input type="range" id="dwg-opacity" min="0" max="100" step="5" value="80" />
-              <span id="dwg-opacity-value">80%</span>
-            </div>
-          </div>
-          <button class="secondary" id="dwg-remove" style="width:100%">Remove drawing</button>
-          <div class="status" id="dwg-status"></div>
         </div>
 
       </div>
@@ -221,7 +222,7 @@
       <button class="secondary" id="btn-toggle-points">Points</button>
     </div>
     <svg id="canvas-svg"></svg>
-    <div class="hint" id="canvas-hint">Load a CSV to begin.</div>
+    <div class="hint" id="canvas-hint">Load a basemap, drawing, or CSV to begin.</div>
     <div class="attribution" id="basemap-attribution" style="display:none;">Basemap &copy; LINZ</div>
   </div>
 </div>

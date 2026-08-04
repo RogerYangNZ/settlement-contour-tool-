@@ -2,7 +2,6 @@
  * list the backend interpolates. */
 import { state } from './state.js';
 import { setStatus } from './dom.js';
-import { showGroup } from './panel.js';
 
 // Client-side CSV parse (handles simple quoted fields + ; and tab delimiters).
 function parseCSV(text) {
@@ -78,7 +77,6 @@ function populateMapping() {
   table.innerHTML = html;
 
   document.getElementById('sub-settings').style.display = 'block';
-  showGroup('group-underlays');
   buildPointsFromMapping();
   ['col-x', 'col-y', 'col-z', 'col-id'].forEach(id => {
     document.getElementById(id).addEventListener('change', buildPointsFromMapping);

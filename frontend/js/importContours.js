@@ -4,7 +4,6 @@
  * contour DXF, reshape it, and re-export, with no CSV loaded. */
 import { setStatus } from './dom.js';
 import { loadContours } from './contours.js';
-import { showGroup } from './panel.js';
 
 async function importFile(file) {
   if (!file) return;
@@ -17,7 +16,6 @@ async function importFile(file) {
     const data = await res.json();
     const levels = [...new Set(data.contours.map(c => c.level))].sort((a, b) => a - b);
     loadContours({ contours: data.contours, levels, bounds: data.bounds });
-    showGroup('group-underlays');   // a basemap/drawing may still be wanted
     setStatus('contour-import-status',
       `Imported ${data.contour_count} contours at ${levels.length} level${levels.length === 1 ? '' : 's'}`, 'ok');
   } catch (err) {
