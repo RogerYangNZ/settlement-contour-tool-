@@ -328,6 +328,43 @@ table.preview th { background: #14161a; }
   margin-bottom: 6px;
 }
 
+.utility-layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0;
+}
+.utility-layer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+}
+.utility-layer-row .name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.utility-layer-row .line-swatch {
+  width: 18px;
+  height: 0;
+  border-top-width: 2px;
+  border-top-style: solid;
+  flex-shrink: 0;
+}
+.utility-layer-row .line-swatch.dashed { border-top-style: dashed; }
+.utility-layer-row .remove {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.utility-layer-row .remove:hover { color: #ff9a8a; }
+
 .slider-row {
   display: flex;
   align-items: center;

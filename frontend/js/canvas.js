@@ -9,10 +9,13 @@ export const svg = d3.select('#canvas-svg');
 export const zoomLayer = svg.append('g').attr('class', 'zoom-layer');
 
 // Underlays paint below everything else. A group of groups so each underlay
-// source (LINZ basemap raster, georeferenced DWG) gets its own child layer.
+// source (LINZ basemap raster, georeferenced DWG, ArcGIS utility lines) gets
+// its own child layer. Order here is back-to-front: basemap, then DWG, then
+// utilities on top of both.
 export const underlaysLayer = zoomLayer.append('g').attr('class', 'underlays-layer');
 export const linzBasemapLayer = underlaysLayer.append('g').attr('class', 'linz-basemap-layer');
 export const dwgLayer = underlaysLayer.append('g').attr('class', 'dwg-layer');
+export const utilitiesLayer = underlaysLayer.append('g').attr('class', 'utilities-layer');
 
 // Hit layer sits below the visible line layer so clicks land on the fat
 // invisible strokes, but the crisp visible lines paint on top of them.

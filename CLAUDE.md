@@ -32,7 +32,8 @@ if `pip`/`uvicorn` are "command not found", the venv isn't activated.
   static assets at `/static`. Add new endpoints as routers, not here.
 - `routers/` — one module per feature area, each an `APIRouter(prefix="/api")`:
   `contours.py` (`/parse-csv`, `/generate`), `export.py` (`/export`),
-  `dwg.py` (`/import-dwg` underlay, `/import-contours` editable contours).
+  `dwg.py` (`/import-dwg` underlay, `/import-contours` editable contours),
+  `utilities.py` (`/import-utilities` ArcGIS `.lpkx` underlay).
 - `schemas.py` — all pydantic request models, shared across routers.
 - `interpolation.py` — IDW scattered points → regular grid (pure numpy). Self-contained
   behind `build_grid`/`idw_interpolate` so a kriging alternative could be swapped in.
@@ -40,6 +41,8 @@ if `pip`/`uvicorn` are "command not found", the venv isn't activated.
 - `dxf_export.py` — contours → DXF via `ezdxf` (one layer per level, Z = settlement value).
 - `dwg_import.py` — DWG/DXF drawing → flat polylines (`load_drawing`, underlay) **and**
   → editable contours keeping level + closure (`load_contours`); see "DWG import" below.
+- `lpkx_import.py` — ArcGIS `.lpkx` layer package → flat polylines/points (`load_utilities`,
+  underlay only, not editable); see "Utilities (.lpkx) import" below.
 
 **Frontend** (`frontend/`, vanilla ES modules + D3 via CDN — no bundler, no npm):
 - `index.html` — the whole UI. The sidebar is four **collapsible groups**
@@ -59,7 +62,8 @@ if `pip`/`uvicorn` are "command not found", the venv isn't activated.
   generate/import ingest), `importContours.js` (DXF contours → editable, no CSV needed),
   `editing.js`, `smoothing.js`, `simplify.js` (Douglas–Peucker vertex reduction),
   `export.js`, `legend.js`, `basemap.js` (LINZ tiles),
-  `dwg.js` (CAD underlay). Helpers: `colors.js`, `dom.js`.
+  `dwg.js` (CAD underlay), `utilities.js` (ArcGIS `.lpkx` underlay, multiple layers at
+  once, unlike `dwg.js`'s single drawing). Helpers: `colors.js`, `dom.js`.
 - `config.js` — optional `window.APP_CONFIG.LINZ_API_KEY`. Served to the browser, so
   never commit a real key; the UI also accepts a key into localStorage.
 
@@ -70,9 +74,9 @@ if `pip`/`uvicorn` are "command not found", the venv isn't activated.
   `projection.js` maps data → a fixed 1000-unit "world pixel" space; the D3 zoom transform
   on `zoomLayer` handles pan/zoom on top. Keep all editing math in data coordinates.
 - **SVG layer order** (from `canvas.js`, back→front): underlays (LINZ basemap raster, then
-  DWG vectors) → contour hit strokes → contour lines → points → vertices. Fat transparent
-  "hit strokes" sit *below* the thin visible lines so clicks are forgiving; visible lines
-  have `pointer-events: none`. Preserve this when adding layers.
+  DWG vectors, then ArcGIS utility lines) → contour hit strokes → contour lines → points →
+  vertices. Fat transparent "hit strokes" sit *below* the thin visible lines so clicks are
+  forgiving; visible lines have `pointer-events: none`. Preserve this when adding layers.
 - **Vector underlays pan/zoom for free** because they live inside `zoomLayer`; only the
   raster basemap re-fetches per view (`onZoom`). Use `vector-effect: non-scaling-stroke`
   to keep line width constant across zoom.
@@ -111,6 +115,30 @@ spline order (`MAX_SPLINE_ORDER`) and raises `ValueError("invalid order")`, whic
 otherwise silently drop the entity (→ "No contour lines found"). We fall back to ezdxf's
 pure-Python `Basis`/`Evaluator` and mirror its adaptive-subdivision flattening. Both the
 underlay and contour-import paths share this flattener.
+
+## Utilities (.lpkx) import
+
+ArcGIS "compact" layer packages (`.lpkx`) are **7z archives** (not zip — check with `file`
+if a new sample looks unreadable), containing a File Geodatabase nested a few levels down
+(e.g. `commondata/<name>.gdb`) plus `.lyrx` symbology we don't use. Pipeline in
+`lpkx_import.py`: `py7zr` extracts the archive (pure Python, no system `7z` binary needed),
+then `pyogrio` reads the geodatabase directly — its PyPI wheel bundles GDAL with the
+open-source OpenFileGDB driver, so no ArcGIS license or separate GDAL/brew install is
+required. Geometry is read with `pyogrio.raw.read(..., columns=[])` (not
+`read_dataframe`, which needs `geopandas`) and flattened with `shapely.from_wkb`.
+
+Unlike DWG (already in NZTM, passed through untouched), a `.gdb` layer carries its own CRS,
+so each layer is reprojected to EPSG:2193 with `pyproj` when its CRS is defined and
+different; a layer with no CRS at all is passed through as-is with a note added to the
+response's `warnings` list, rather than failing. The sample data in
+`sample_data/Utilities/` is already EPSG:2193, so reprojection is a no-op there in
+practice but still guards against a differently-sourced package.
+
+This is underlay-only, like `load_drawing` — no editable levels, no export. Styling is
+**not** derived from the package's `.lyrx` renderer; the frontend (`utilities.js`) applies
+its own fixed colour-coding per uploaded file instead (wet/dry → colour, GHELLA/Open
+Source → solid/dashed), since several `.lpkx` files load and toggle independently (unlike
+`dwg.js`'s single-drawing model).
 
 ## Testing / verifying
 

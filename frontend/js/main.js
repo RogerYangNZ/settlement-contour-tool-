@@ -15,6 +15,7 @@ import { initSimplify } from './simplify.js';
 import { initExport } from './export.js';
 import { initBasemap } from './basemap.js';
 import { initDwg } from './dwg.js';
+import { initUtilities } from './utilities.js';
 import { initRender } from './render.js';
 
 initPanel();       // collapsible sidebar groups
@@ -27,4 +28,5 @@ initSimplify();     // before any contours load: sets the default tolerance
 initExport();
 initBasemap();
 initDwg();
+initUtilities();
 initRender();

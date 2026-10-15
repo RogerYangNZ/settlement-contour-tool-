@@ -11,5 +11,6 @@ export const state = {
   showPoints: true,
   projection: null,      // {scale,worldW,worldH,xMin,yMin,xMax,yMax}
   dwg: null,             // {polylines:[[[x,y]]], texts:[{x,y,text,height}], bounds}
+  utilities: [],         // [{id, name, color, dash, visible, opacity, polylines, points, bounds}]
   nextId: 1,
 };
