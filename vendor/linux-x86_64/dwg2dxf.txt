@@ -1,0 +1,7 @@
+dwg2dxf from GNU LibreDWG 0.13.3, built for linux-x86_64 (Ubuntu 22.04).
+License: GPL-3.0-or-later. Corresponding source:
+  https://ftp.gnu.org/gnu/libredwg/libredwg-0.13.3.tar.xz
+  sha256 83f1f6e78a744777a481ff4520e4cef3f8ac4b2c1c25671077ca12fe81e8816e
+configure: --disable-shared --enable-static --disable-bindings --disable-python --enable-release --disable-werror
+Built by https://github.com/RogerYangNZ/settlement-contour-tool-/actions/runs/38685331887
+from .github/workflows/build-dwg2dxf.yml — do not edit by hand.
