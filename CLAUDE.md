@@ -33,7 +33,8 @@ if `pip`/`uvicorn` are "command not found", the venv isn't activated.
 - `routers/` — one module per feature area, each an `APIRouter(prefix="/api")`:
   `contours.py` (`/parse-csv`, `/generate`), `export.py` (`/export`),
   `dwg.py` (`/import-dwg` underlay, `/import-contours` editable contours),
-  `utilities.py` (`/import-utilities` ArcGIS `.lpkx` underlay).
+  `utilities.py` (`/import-utilities` ArcGIS `.lpkx` underlay),
+  `config.py` (`/config` — LINZ key from the `LINZ_API_KEY` env var, for Databricks).
 - `schemas.py` — all pydantic request models, shared across routers.
 - `interpolation.py` — IDW scattered points → regular grid (pure numpy). Self-contained
   behind `build_grid`/`idw_interpolate` so a kriging alternative could be swapped in.
@@ -139,6 +140,31 @@ This is underlay-only, like `load_drawing` — no editable levels, no export. St
 its own fixed colour-coding per uploaded file instead (wet/dry → colour, GHELLA/Open
 Source → solid/dashed), since several `.lpkx` files load and toggle independently (unlike
 `dwg.js`'s single-drawing model).
+
+## Databricks deployment
+
+Deployed as a Databricks App via the bundle in `databricks.yml` (targets `staging`, `prod`;
+apps `settlement-contours-staging` / `-prod` on the same Arup workspaces as the sibling
+`geo-databricks-arup` repo). User-facing runbook: README → "Deploying to Databricks".
+Non-obvious points:
+
+- **Stateless by design** — no UC Volume, no Lakebase, so no service-principal grants. If
+  persistence is ever added, follow `geo-databricks-arup/docs/DATABRICKS_DEPLOY.md` (Volume
+  grants, auto-provisioned USE CATALOG lag) rather than reinventing it.
+- **`app.yaml` is the single source of runtime config** for every target; `databricks.yml`
+  has no per-target `config` override (the geo repo hit CLI #4901, where `config` was silently
+  ignored). Start command is `uvicorn app:app --app-dir backend …` from the repo root.
+- **Dependencies: root `requirements.txt` holds the pins** (Apps installs it with pip from the
+  source root); `backend/requirements.txt` is only `-r ../requirements.txt`. The runtime is
+  **Python 3.11 / Linux x86_64 with no compilers**, so every pin needs a cp311 manylinux wheel —
+  pyproj is held at 3.7.2 because 3.8.0 has none. Check with the dry-run in that file's header.
+- **No DWG on Databricks**: `dwg2dxf` is a system binary. `_find_converter` raises a
+  `DwgImportError` → 422 telling the user to upload DXF. Don't add a code path that assumes it.
+- **LINZ key**: priority is `config.js` → localStorage (UI paste) → `/api/config` (workspace
+  secret `geo-databricks/linz_api_key`, injected as `LINZ_API_KEY`). The server key is never
+  written to localStorage, so rotating the secret + restarting the app takes effect.
+- `bundle deploy` ships the **working tree**, not git — commit and deploy staging → prod with
+  an unchanged tree. `deploy` syncs files; `bundle run settlement_app` is what restarts onto them.
 
 ## Testing / verifying
 

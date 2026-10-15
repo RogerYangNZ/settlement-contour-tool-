@@ -11,3 +11,6 @@ __pycache__/
 
 # Exported artifacts
 *.dxf
+
+# Databricks bundle local state
+.databricks/

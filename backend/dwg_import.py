@@ -68,8 +68,9 @@ def _find_converter() -> str:
     exe = shutil.which("dwg2dxf")
     if not exe:
         raise DwgImportError(
-            "LibreDWG's 'dwg2dxf' converter was not found on PATH. "
-            "Install it with: brew install libredwg"
+            "This server can't read .dwg files (LibreDWG's 'dwg2dxf' converter is not "
+            "installed). Save the drawing as DXF (in AutoCAD: SAVEAS → DXF) and upload "
+            "the .dxf instead. To enable .dwg on a local install: brew install libredwg"
         )
     return exe
 

@@ -6,6 +6,7 @@ Endpoints live in routers/:
   routers/export.py     -> /api/export
   routers/dwg.py        -> /api/import-dwg
   routers/utilities.py  -> /api/import-utilities
+  routers/config.py     -> /api/config (LINZ key from env, for Databricks)
 
 This module just wires the app together and serves the frontend.
 
@@ -21,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from routers import contours, dwg, export, utilities
+from routers import config, contours, dwg, export, utilities
 
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
@@ -52,6 +53,7 @@ app.include_router(contours.router)
 app.include_router(export.router)
 app.include_router(dwg.router)
 app.include_router(utilities.router)
+app.include_router(config.router)
 
 
 @app.get("/", response_class=HTMLResponse)

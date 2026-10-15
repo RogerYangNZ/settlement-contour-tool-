@@ -1,0 +1,22 @@
+# Databricks Apps entrypoint. Used by every environment (staging and prod) — nothing in it
+# varies per workspace, so databricks.yml deliberately has no per-target `config` override.
+#
+# Apps run the Python source directly from the synced repo root: dependencies come from the
+# root requirements.txt, and there is no build step (the frontend is plain static files).
+#
+# The app MUST bind to the port Databricks injects as $DATABRICKS_APP_PORT; `sh -c` is what
+# expands it. `--app-dir backend` puts backend/ on sys.path, so app.py's `from routers import …`
+# imports work and FRONTEND_DIR (backend/../frontend) still resolves — same as running
+# `uvicorn app:app` from inside backend/ locally.
+command:
+  - "sh"
+  - "-c"
+  - "uvicorn app:app --app-dir backend --host 0.0.0.0 --port $DATABRICKS_APP_PORT"
+
+env:
+  # LINZ Basemaps key for the aerial underlay, from the `linz-api-key` app resource (the
+  # workspace's `geo-databricks` secret scope, shared with the nz-geotechnics app). Served to
+  # the browser by GET /api/config. Rotating it needs only an app restart, not a redeploy.
+  # Note `valueFrom` here vs snake_case `value_from` in databricks.yml — the two differ.
+  - name: LINZ_API_KEY
+    valueFrom: linz-api-key

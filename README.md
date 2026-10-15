@@ -20,12 +20,14 @@ since nothing off the shelf offered that combination.
 3. **Contour** — traces lines at any interval you choose (default 5mm, but
    you can set 3mm, 10mm, anything).
 4. **Edit by hand** — drag vertices, insert new ones by clicking on a line,
-   delete vertices, and apply a Chaikin corner-cutting smoothing slider per
-   line or to everything at once.
-5. **Overlay a georeferenced DWG/DXF** (optional) — drop in a site drawing
-   drawn in the same easting/northing (NZTM) as your survey points and it
-   renders as a read-only underlay behind the contours, so you can see the
-   contours in the context of the site plan.
+   delete vertices or whole segments, and apply a Chaikin corner-cutting
+   smoothing slider per line or to everything at once. Lines are thinned to
+   far fewer vertices on load (Douglas–Peucker) so they're easy to edit; a
+   "Vertex reduction" slider tunes how much.
+5. **Overlay underlays** (optional) — a georeferenced site drawing (DWG/DXF),
+   ArcGIS utility layer packages (`.lpkx`), and/or the LINZ aerial basemap,
+   all in the same easting/northing (NZTM) as your survey points, rendered
+   read-only behind the contours for site context.
 6. **Export to DXF** — one layer per contour level (e.g. `SETTLEMENT_5`,
    `SETTLEMENT_10`), each polyline's elevation (Z) set to the settlement
    value, plus optional survey point markers and labels. Opens directly in
@@ -68,7 +70,7 @@ LibreDWG's `dwg2dxf` converter on your PATH (`brew install libredwg` on macOS).
 Any CSV with at least three numeric columns: easting, northing, and
 settlement value (any units — the interval you set in the UI should match,
 e.g. millimetres). A header row is expected; a sample is provided at
-`sample_data/sample_settlement.csv`. Column mapping happens in the UI after
+`sample_data/Contour_CSV.csv`. Column mapping happens in the UI after
 upload, so header names don't need to match anything specific.
 
 ## Notes on the DXF output
@@ -105,15 +107,71 @@ settlement-contour-tool/
     contouring.py        grid -> contour lines (contourpy) at any interval
     dxf_export.py         contours -> DXF (layer per level, elevation embedded)
     dwg_import.py         DWG/DXF drawing -> flat polylines (via LibreDWG + ezdxf)
+    lpkx_import.py        ArcGIS .lpkx layer package -> polylines/points (py7zr + pyogrio)
     app.py                 FastAPI app: wires the routers, serves the frontend
-    routers/               contours.py, export.py, dwg.py (API endpoints)
+    routers/               contours, export, dwg, utilities, config (API endpoints)
     schemas.py             pydantic request models
-    requirements.txt
+    requirements.txt       just includes ../requirements.txt
   frontend/
     index.html             upload, column mapping, settings, legend, edit tools
     config.js              optional LINZ Basemaps API key
-    js/                    ES modules: rendering, pan/zoom, editing, basemap, dwg
+    js/                    ES modules: rendering, pan/zoom, editing, simplify, basemap, dwg, utilities
     style.css
   sample_data/
-    sample_settlement.csv  synthetic test data (60 points, bowl-shaped settlement)
+    Contour_CSV.csv        sample survey points
+  requirements.txt         Python dependency pins (shared by local + Databricks)
+  app.yaml                 Databricks Apps start command + env
+  databricks.yml           Databricks Asset Bundle (staging / prod targets)
 ```
+
+## Deploying to Databricks
+
+The tool runs as a **Databricks App** on the Arup staging and prod workspaces,
+alongside the `nz-geotechnics` geo-databricks app. It is stateless — no
+Volume, no database — so deployment is just the app itself.
+
+| Target | Workspace | App name | CLI profile |
+|---|---|---|---|
+| `staging` | `dbc-8244a8d2-0f15` | `settlement-contours-staging` | `staging` |
+| `prod` | `dbc-660fdeaa-1f2a` | `settlement-contours-prod` | `prod` |
+
+**One-time prerequisites**
+
+- Databricks CLI (set up with v1.17.0; `brew install databricks/tap/databricks`), logged in to each
+  workspace: `databricks auth login --profile staging` (and `--profile prod`).
+  Tokens expire — if a command says the refresh token is invalid, re-run this.
+- The LINZ key lives in each workspace's `geo-databricks` secret scope as
+  `linz_api_key` (already created for the geo-databricks app). Optional —
+  without it, users paste a key into the UI as they would locally.
+
+**Deploy** — always staging first, then the *same* tree to prod. `bundle
+deploy` ships your local working tree, not a git commit, so commit first and
+make sure `git status` is clean:
+
+```bash
+databricks bundle validate -t staging
+databricks bundle deploy   -t staging            # sync files, create/update the app
+databricks bundle run settlement_app -t staging  # snapshot those files and (re)start
+databricks apps get settlement-contours-staging -p staging   # URL + status
+```
+
+Test on the staging URL, then repeat with `-t prod`. A code change needs both
+`deploy` *and* `run` — `deploy` alone uploads files while the app keeps serving
+the previous snapshot. To pick up a rotated secret without shipping code, use
+`databricks apps stop <app>` then `apps start <app>`.
+
+**Access.** A new app is usable only by its creator and workspace admins. Grant
+`CAN_USE` to the right group in the app's Permissions tab (or `databricks apps
+update-permissions`); match whatever `nz-geotechnics-<env>` uses:
+`databricks apps get-permissions nz-geotechnics-staging -p staging`.
+
+**Differences from running locally**
+
+- **No `.dwg` import.** It needs LibreDWG's `dwg2dxf` system binary, which the
+  Apps runtime can't install. Uploading a `.dwg` shows a "save as DXF" message;
+  `.dxf` drawings and contour imports work normally.
+- **LINZ basemap key** comes from the workspace secret via `GET /api/config`
+  (a key in `config.js` or pasted into the UI still takes priority).
+- **Python 3.11** on Linux. Every pin in `requirements.txt` must have a Linux
+  x86_64 wheel for 3.11 (the runtime can't compile) — the header of that file
+  has a one-line check to run before bumping a version.

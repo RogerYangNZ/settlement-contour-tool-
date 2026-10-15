@@ -1,0 +1,76 @@
+# Databricks Asset Bundle — declares the Settlement Contour Tool as a Databricks App.
+#
+#   databricks bundle validate -t staging
+#   databricks bundle deploy   -t staging                 # sync files + create/update the app
+#   databricks bundle run settlement_app -t staging       # snapshot the synced files and (re)start
+#
+# Same Arup workspaces as the geo-databricks app (nz-geotechnics-staging / -prod), deployed
+# staging first, then prod with the SAME tree. `bundle deploy` ships your local working tree,
+# not a git commit — commit first and check `git status` is clean before deploying prod.
+#
+#   staging   dbc-8244a8d2-0f15   app: settlement-contours-staging
+#   prod      dbc-660fdeaa-1f2a   app: settlement-contours-prod
+#
+# The tool is stateless (every upload is processed in memory and returned), so there is no UC
+# Volume, no database, and no service-principal grants to arrange — unlike geo-databricks.
+# Access is gated by Databricks SSO on the app.
+#
+# DWG import is unavailable here: it needs LibreDWG's `dwg2dxf` system binary, which the Apps
+# runtime can't install. .dwg uploads return a "save as DXF" message; .dxf works normally.
+bundle:
+  name: settlement-contour-tool
+
+# Files synced to the workspace on deploy. Git-ignored files (.venv, *.dxf, …) are skipped by
+# default; this list repeats them so a .gitignore edit can't silently start shipping them.
+sync:
+  exclude:
+    - ".git/"
+    - "**/.venv/"
+    - "**/__pycache__/"
+    - "*.pyc"
+    - "*.dxf"
+    - ".DS_Store"
+    - ".claude/"
+    - ".databricks/"
+    - "sample_data/"
+
+variables:
+  app_name:
+    description: Databricks App name (lowercase letters, digits, hyphens; unique per workspace).
+  secret_scope:
+    description: Secret scope holding `linz_api_key` in the target workspace.
+    default: geo-databricks
+
+resources:
+  apps:
+    settlement_app:
+      name: ${var.app_name}
+      description: "Settlement contours from survey points (IDW), hand-editing, and DXF export."
+      source_code_path: ${workspace.file_path}
+      resources:
+        # Optional: if the secret is missing the app still runs; the aerial basemap just needs
+        # a key pasted into the UI instead.
+        - name: linz-api-key
+          secret:
+            scope: ${var.secret_scope}
+            key: linz_api_key
+            permission: READ
+      # Keep ONE instance (the default) — never set compute_min/max_instances. Nothing here
+      # needs more, and there is no shared state to make scaling out safe.
+
+targets:
+  staging:
+    mode: production
+    workspace:
+      host: https://dbc-8244a8d2-0f15.cloud.databricks.com
+      root_path: /Workspace/Users/roger.yang@arup.com/.bundle/settlement-contour-tool/staging
+    variables:
+      app_name: settlement-contours-staging
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-660fdeaa-1f2a.cloud.databricks.com
+      root_path: /Workspace/Users/roger.yang@arup.com/.bundle/settlement-contour-tool/prod
+    variables:
+      app_name: settlement-contours-prod

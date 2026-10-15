@@ -23,7 +23,9 @@ const NZTM_TMS = {
 };
 const NZTM_M_PER_TILEPX_Z0 = NZTM_TMS.extentAtZ0 / NZTM_TMS.tileSizePx;
 
-// API key priority: config.js (authoritative) -> localStorage (UI paste) -> empty.
+// API key priority: config.js (authoritative) -> localStorage (UI paste) ->
+// the server's key from /api/config (on Databricks, a workspace secret; fetched
+// in initBasemap) -> empty.
 export const basemap = {
   style: 'off',       // 'off' | 'aerial' | 'topographic'
   opacity: 0.6,
@@ -126,6 +128,20 @@ export function initBasemap() {
     localStorage.setItem('linzBasemapsApiKey', basemap.apiKey);
     renderBasemap();
   });
+
+  // No key from config.js or an earlier paste: fall back to the server's. Kept
+  // out of the input box/localStorage so a server key rotation takes effect.
+  if (!basemap.apiKey) {
+    fetch('/api/config')
+      .then(res => (res.ok ? res.json() : {}))
+      .then(cfg => {
+        if (basemap.apiKey || !cfg.linz_api_key) return;   // user pasted one meanwhile
+        basemap.apiKey = cfg.linz_api_key;
+        apiKeyInput.placeholder = 'Provided by the server — paste to override';
+        renderBasemap();
+      })
+      .catch(() => {});   // optional feature: a failed fetch just leaves the paste-in box
+  }
 
   document.getElementById('basemap-style').addEventListener('change', (e) => {
     basemap.style = e.target.value;
