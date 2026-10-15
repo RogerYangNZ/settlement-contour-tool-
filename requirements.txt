@@ -2,8 +2,8 @@
 # Databricks Apps installs `requirements.txt` from the app's source root with pip;
 # backend/requirements.txt just includes this file, so local setup is unchanged.
 #
-# Pins must have Linux x86_64 wheels for Python 3.11 (the Apps runtime, Ubuntu 22.04);
-# the runtime has no compilers. Check before bumping, e.g.:
+# Pins should have prebuilt Linux x86_64 wheels for Python 3.11 (the Apps runtime, Ubuntu
+# 22.04) — don't rely on it being able to compile from source. Check before bumping, e.g.:
 #   pip install --dry-run --ignore-installed --only-binary=:all: \
 #     --platform manylinux2014_x86_64 --python-version 3.11 --target /tmp/x -r requirements.txt
 fastapi==0.115.6

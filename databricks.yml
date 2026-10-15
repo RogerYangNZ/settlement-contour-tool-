@@ -15,8 +15,8 @@
 # Volume, no database, and no service-principal grants to arrange — unlike geo-databricks.
 # Access is gated by Databricks SSO on the app.
 #
-# DWG import is unavailable here: it needs LibreDWG's `dwg2dxf` system binary, which the Apps
-# runtime can't install. .dwg uploads return a "save as DXF" message; .dxf works normally.
+# DWG import uses vendor/linux-x86_64/dwg2dxf (built by .github/workflows/build-dwg2dxf.yml),
+# because the Apps runtime can't install LibreDWG. It must be present in the tree you deploy.
 bundle:
   name: settlement-contour-tool
 
@@ -25,6 +25,7 @@ bundle:
 sync:
   exclude:
     - ".git/"
+    - ".github/"
     - "**/.venv/"
     - "**/__pycache__/"
     - "*.pyc"

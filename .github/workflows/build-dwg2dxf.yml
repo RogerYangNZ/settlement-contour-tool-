@@ -1,0 +1,80 @@
+# Builds GNU LibreDWG's `dwg2dxf` for the Databricks Apps runtime (Ubuntu 22.04, x86_64),
+# which can't install system packages, and commits it to vendor/linux-x86_64/ on the branch
+# that triggered the run. backend/dwg_import.py falls back to that binary when there is no
+# `dwg2dxf` on PATH (locally, Homebrew's copy on PATH wins, so nothing changes there).
+#
+# To rebuild (e.g. a new LibreDWG release): bump LIBREDWG_VERSION + LIBREDWG_SHA256 below
+# and push — editing this file is what triggers it. Then `git pull` to get the new binary.
+name: Build dwg2dxf (linux-x86_64)
+
+on:
+  push:
+    paths: [".github/workflows/build-dwg2dxf.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # to commit the built binary back to the branch
+
+env:
+  LIBREDWG_VERSION: "0.13.3"
+  # sha256 of https://ftp.gnu.org/gnu/libredwg/libredwg-0.13.3.tar.xz
+  LIBREDWG_SHA256: "83f1f6e78a744777a481ff4520e4cef3f8ac4b2c1c25671077ca12fe81e8816e"
+
+jobs:
+  build:
+    # Same Ubuntu release (glibc 2.35) as the Databricks Apps runtime, so the binary's
+    # glibc symbol versions are guaranteed to exist there.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and verify source
+        run: |
+          curl -sSfL -o libredwg.tar.xz \
+            "https://ftp.gnu.org/gnu/libredwg/libredwg-${LIBREDWG_VERSION}.tar.xz"
+          echo "${LIBREDWG_SHA256}  libredwg.tar.xz" | sha256sum -c -
+          tar xf libredwg.tar.xz
+
+      - name: Build (libredwg linked statically, no bindings)
+        working-directory: libredwg-${{ env.LIBREDWG_VERSION }}
+        run: |
+          ./configure --disable-shared --enable-static --disable-bindings \
+            --disable-python --enable-release --disable-werror
+          make -j"$(nproc)"
+          strip programs/dwg2dxf
+
+      - name: Check the binary
+        run: |
+          BIN="libredwg-${LIBREDWG_VERSION}/programs/dwg2dxf"
+          file "$BIN"
+          ldd "$BIN"
+          # Must need nothing beyond glibc/libm, which every Linux image has.
+          EXTRA=$(ldd "$BIN" | grep -v -E 'linux-vdso|ld-linux|libc\.so|libm\.so' || true)
+          if [ -n "$EXTRA" ]; then echo "Unexpected shared-library deps:"; echo "$EXTRA"; exit 1; fi
+          "$BIN" --version
+          # Same invocation as backend/dwg_import.py, on the committed sample drawing.
+          "$BIN" -y --as r2000 -o /tmp/sample.dxf sample_data/X-ARUP-GL-HERNE_BAY_ALIGNMENT.dwg
+          test -s /tmp/sample.dxf
+          ls -la /tmp/sample.dxf
+
+      - name: Commit the binary
+        run: |
+          OUT=vendor/linux-x86_64
+          mkdir -p "$OUT"
+          cp "libredwg-${LIBREDWG_VERSION}/programs/dwg2dxf" "$OUT/dwg2dxf"
+          chmod 755 "$OUT/dwg2dxf"
+          cat > "$OUT/dwg2dxf.txt" <<EOF
+          dwg2dxf from GNU LibreDWG ${LIBREDWG_VERSION}, built for linux-x86_64 (Ubuntu 22.04).
+          License: GPL-3.0-or-later. Corresponding source:
+            https://ftp.gnu.org/gnu/libredwg/libredwg-${LIBREDWG_VERSION}.tar.xz
+            sha256 ${LIBREDWG_SHA256}
+          configure: --disable-shared --enable-static --disable-bindings --disable-python --enable-release --disable-werror
+          Built by ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          from .github/workflows/build-dwg2dxf.yml — do not edit by hand.
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          if git diff --cached --quiet; then echo "Binary unchanged"; exit 0; fi
+          git commit -m "Build dwg2dxf ${LIBREDWG_VERSION} for linux-x86_64"
+          git push

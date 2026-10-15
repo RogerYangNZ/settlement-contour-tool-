@@ -93,7 +93,8 @@ if `pip`/`uvicorn` are "command not found", the venv isn't activated.
 ## DWG import
 
 `.dwg` is a closed binary format. Pipeline: `dwg2dxf` (GNU LibreDWG, a **system binary** —
-`brew install libredwg`, not a pip package) converts DWG→DXF, then `ezdxf` parses it and
+`brew install libredwg` locally, not a pip package; on Databricks the vendored Linux build, see
+"Databricks deployment") converts DWG→DXF, then `ezdxf` parses it and
 `ezdxf.path.make_path(e).flattening()` reduces every entity (lines, arcs, circles, splines,
 and block INSERTs via `virtual_entities`) to plain polylines. `.dxf` uploads skip conversion.
 
@@ -156,10 +157,15 @@ Non-obvious points:
   ignored). Start command is `uvicorn app:app --app-dir backend …` from the repo root.
 - **Dependencies: root `requirements.txt` holds the pins** (Apps installs it with pip from the
   source root); `backend/requirements.txt` is only `-r ../requirements.txt`. The runtime is
-  **Python 3.11 / Linux x86_64 with no compilers**, so every pin needs a cp311 manylinux wheel —
-  pyproj is held at 3.7.2 because 3.8.0 has none. Check with the dry-run in that file's header.
-- **No DWG on Databricks**: `dwg2dxf` is a system binary. `_find_converter` raises a
-  `DwgImportError` → 422 telling the user to upload DXF. Don't add a code path that assumes it.
+  **Python 3.11 / Linux x86_64** (Ubuntu 22.04) and can't install system packages, so keep
+  every pin to one with a cp311 manylinux wheel rather than relying on a source build — pyproj
+  is held at 3.7.2 because 3.8.0 has none. Check with the dry-run in that file's header.
+- **DWG on Databricks uses a vendored `dwg2dxf`** (`vendor/linux-x86_64/`, GPL-3.0, provenance
+  in `dwg2dxf.txt`), built on ubuntu-22.04 by `.github/workflows/build-dwg2dxf.yml` with
+  libredwg statically linked (only glibc/libm needed) and committed back by the workflow —
+  never hand-edit it. `_find_converter` prefers PATH (Homebrew locally), then the vendored copy
+  on Linux x86_64, running a chmod'ed temp copy if workspace sync dropped the exec bit. With
+  neither, it raises `DwgImportError` → 422 "save as DXF".
 - **LINZ key**: priority is `config.js` → localStorage (UI paste) → `/api/config` (workspace
   secret `geo-databricks/linz_api_key`, injected as `LINZ_API_KEY`). The server key is never
   written to localStorage, so rotating the secret + restarting the app takes effect.

@@ -9,10 +9,14 @@ untouched: survey drawings are already in real easting/northing (NZTM), which is
 the same space the contours live in, so no reprojection is needed.
 
 Install the converter with:  brew install libredwg   (provides `dwg2dxf`).
+On Linux x86_64 with no `dwg2dxf` on PATH (the Databricks Apps runtime), a copy
+built by .github/workflows/build-dwg2dxf.yml is used from vendor/linux-x86_64/.
 """
 from __future__ import annotations
 
 import math
+import os
+import platform
 import re
 import shutil
 import subprocess
@@ -64,8 +68,29 @@ class DwgImportError(Exception):
     """Raised for any recoverable problem converting/parsing a drawing."""
 
 
+# Linux x86_64 build committed by .github/workflows/build-dwg2dxf.yml, for hosts
+# that can't install LibreDWG (Databricks Apps).
+VENDORED_DWG2DXF = Path(__file__).resolve().parent.parent / "vendor" / "linux-x86_64" / "dwg2dxf"
+
+
+def _vendored_converter() -> str | None:
+    if platform.system() != "Linux" or platform.machine() != "x86_64":
+        return None
+    if not VENDORED_DWG2DXF.is_file():
+        return None
+    if os.access(VENDORED_DWG2DXF, os.X_OK):
+        return str(VENDORED_DWG2DXF)
+    # Syncing to a Databricks workspace can drop the executable bit, and the
+    # source dir may be read-only, so run a chmod'ed copy from temp instead.
+    copy = Path(tempfile.gettempdir()) / "dwg2dxf-vendored"
+    if not os.access(copy, os.X_OK):
+        shutil.copyfile(VENDORED_DWG2DXF, copy)
+        copy.chmod(0o755)
+    return str(copy)
+
+
 def _find_converter() -> str:
-    exe = shutil.which("dwg2dxf")
+    exe = shutil.which("dwg2dxf") or _vendored_converter()
     if not exe:
         raise DwgImportError(
             "This server can't read .dwg files (LibreDWG's 'dwg2dxf' converter is not "

@@ -167,11 +167,15 @@ update-permissions`); match whatever `nz-geotechnics-<env>` uses:
 
 **Differences from running locally**
 
-- **No `.dwg` import.** It needs LibreDWG's `dwg2dxf` system binary, which the
-  Apps runtime can't install. Uploading a `.dwg` shows a "save as DXF" message;
-  `.dxf` drawings and contour imports work normally.
+- **`.dwg` import uses a bundled converter.** The Apps runtime can't install
+  LibreDWG, so a Linux build of `dwg2dxf` is committed at
+  `vendor/linux-x86_64/dwg2dxf`, built by the GitHub Actions workflow
+  `.github/workflows/build-dwg2dxf.yml` (to rebuild, bump the version in that
+  file, push, then `git pull`). If it's ever missing from the deployed tree,
+  `.dwg` uploads show a "save as DXF" message instead.
 - **LINZ basemap key** comes from the workspace secret via `GET /api/config`
   (a key in `config.js` or pasted into the UI still takes priority).
-- **Python 3.11** on Linux. Every pin in `requirements.txt` must have a Linux
-  x86_64 wheel for 3.11 (the runtime can't compile) — the header of that file
-  has a one-line check to run before bumping a version.
+- **Python 3.11** on Linux, and no system packages can be installed. Every pin
+  in `requirements.txt` should have a prebuilt Linux x86_64 wheel for 3.11 —
+  don't count on the runtime being able to compile one. The header of that
+  file has a one-line check to run before bumping a version.
