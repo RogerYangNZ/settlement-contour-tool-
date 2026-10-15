@@ -77,6 +77,26 @@ export function renderCanvas() {
     .attr('cy', d => d.px[1]);
   pointsLayer.selectAll('circle.pt title').text(d => `${d.id}: ${d.z}mm`);
 
+  // Settlement-value labels next to each point, offset so they don't sit on
+  // top of the dot. pointer-events: none keeps them from stealing clicks
+  // meant for the point/contour layers below.
+  const labels = pointsLayer.selectAll('text.pt-label').data(ptData, (d, i) => d.id || i);
+  labels.exit().remove();
+  labels.enter().append('text')
+    .attr('class', 'pt-label')
+    .attr('fill', '#ffffff')
+    .attr('stroke', '#000')
+    .attr('stroke-width', 2)
+    .attr('paint-order', 'stroke')
+    .attr('font-size', 9)
+    .attr('dx', 4)
+    .attr('dy', -4)
+    .attr('pointer-events', 'none');
+  pointsLayer.selectAll('text.pt-label')
+    .attr('x', d => d.px[0])
+    .attr('y', d => d.px[1])
+    .text(d => Number(d.z).toFixed(1));
+
   renderVertices();
 }
 
