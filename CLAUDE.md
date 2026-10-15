@@ -57,7 +57,8 @@ if `pip`/`uvicorn` are "command not found", the venv isn't activated.
 - `js/render.js` — main canvas draw (contours + hit strokes + points).
 - Feature modules: `csv.js`, `contours.js` (exports `loadContours`, the shared
   generate/import ingest), `importContours.js` (DXF contours → editable, no CSV needed),
-  `editing.js`, `smoothing.js`, `export.js`, `legend.js`, `basemap.js` (LINZ tiles),
+  `editing.js`, `smoothing.js`, `simplify.js` (Douglas–Peucker vertex reduction),
+  `export.js`, `legend.js`, `basemap.js` (LINZ tiles),
   `dwg.js` (CAD underlay). Helpers: `colors.js`, `dom.js`.
 - `config.js` — optional `window.APP_CONFIG.LINZ_API_KEY`. Served to the browser, so
   never commit a real key; the UI also accepts a key into localStorage.
@@ -77,6 +78,12 @@ if `pip`/`uvicorn` are "command not found", the venv isn't activated.
   to keep line width constant across zoom.
 - **Closed contours**: the tracer duplicates the first point at the end; `contours.js`
   drops that duplicate and tracks closure with an explicit `closed` flag + SVG `Z`.
+- **Three geometry copies per contour**: `traced` (full tracer/import detail, never shown),
+  `original` (= `traced` simplified at the vertex-reduction tolerance; the baseline that
+  smoothing and "Reset" work from), and `coords` (what's drawn, edited and exported).
+  The tracer emits one vertex per grid-cell crossing, so lines are simplified on load
+  (default tolerance 0.3% of the extent diagonal). Anything that rewrites `original`
+  (e.g. the segment cut) must rewrite `traced` too.
 
 ## DWG import
 

@@ -11,6 +11,7 @@ import { initGenerate } from './contours.js';
 import { initImportContours } from './importContours.js';
 import { initEditing } from './editing.js';
 import { initSmoothing } from './smoothing.js';
+import { initSimplify } from './simplify.js';
 import { initExport } from './export.js';
 import { initBasemap } from './basemap.js';
 import { initDwg } from './dwg.js';
@@ -22,6 +23,7 @@ initGenerate();
 initImportContours();
 initEditing();     // also sets the initial tool ('select')
 initSmoothing();
+initSimplify();     // before any contours load: sets the default tolerance
 initExport();
 initBasemap();
 initDwg();

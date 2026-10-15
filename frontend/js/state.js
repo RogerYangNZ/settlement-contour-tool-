@@ -4,7 +4,7 @@ export const state = {
   header: [],
   rawRows: [],
   points: [],           // [{x,y,z,id}]
-  contours: [],          // [{id, level, original:[[x,y]], coords:[[x,y]], closed, visible}]
+  contours: [],          // [{id, level, traced, original, coords:[[x,y]], closed, visible}] — see simplify.js
   levels: [],
   selectedId: null,
   tool: 'select',        // select | add | delete | cut

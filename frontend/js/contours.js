@@ -8,6 +8,7 @@ import { renderLegend } from './legend.js';
 import { fitView } from './canvas.js';
 import { renderDwg } from './dwg.js';
 import { revealGroup } from './panel.js';
+import { currentTolerance, simplifyLine } from './simplify.js';
 
 // Ingest raw contour data (from /generate or /import-contours) into editable
 // contour objects and refresh the whole view. Shared so a CSV-generated set and
@@ -19,6 +20,9 @@ import { revealGroup } from './panel.js';
 //   bounds:   {x_min,x_max,y_min,y_max} to frame the projection.
 export function loadContours({ contours, levels, bounds }) {
   state.levels = levels;
+  // Projection first: the simplify tolerance is scaled to the data extent.
+  buildProjection(bounds);
+  const tol = currentTolerance();
   state.contours = contours.map(c => {
     const dupClosed = c.coords.length > 2 &&
       Math.abs(c.coords[0][0] - c.coords[c.coords.length - 1][0]) < 1e-6 &&
@@ -27,11 +31,15 @@ export function loadContours({ contours, levels, bounds }) {
     // Every vertex in coords/original must be a distinct, editable point; the
     // SVG "Z" command + the `closed` flag re-close the loop on render/export.
     const raw = dupClosed ? c.coords.slice(0, -1) : c.coords;
+    // `traced` keeps full detail so the vertex-reduction slider can re-derive
+    // `original` at any tolerance (see simplify.js).
+    const simplified = simplifyLine(raw, tol, closed);
     return {
       id: state.nextId++,
       level: c.level,
-      original: raw.map(p => p.slice()),
-      coords: raw.map(p => p.slice()),
+      traced: raw.map(p => p.slice()),
+      original: simplified,
+      coords: simplified.map(p => p.slice()),
       closed,
       visible: true,
     };
@@ -44,7 +52,6 @@ export function loadContours({ contours, levels, bounds }) {
   }
   revealGroup('group-edit');
   revealGroup('group-export');
-  buildProjection(bounds);
   renderLegend();
   renderCanvas();
   renderDwg();   // projection changed — re-place the underlay to match

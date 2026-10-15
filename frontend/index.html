@@ -165,6 +165,14 @@
             <button class="danger" id="btn-delete-line" style="width:100%">Delete selected line</button>
           </div>
           <div class="field" style="margin-top:8px;">
+            <label>Vertex reduction (all lines)</label>
+            <div class="slider-row">
+              <input type="range" id="simplify-slider" min="0" max="8" step="1" value="4" />
+              <span id="simplify-value">off</span>
+            </div>
+            <p class="status">Fewer vertices make lines easier to edit. Higher values let lines deviate further from the traced shape. Moving this replaces manual edits and smoothing.</p>
+          </div>
+          <div class="field" style="margin-top:8px;">
             <label>Smoothing (Chaikin corner-cutting)</label>
             <div class="slider-row">
               <input type="range" id="smooth-slider" min="0" max="6" step="1" value="0" />

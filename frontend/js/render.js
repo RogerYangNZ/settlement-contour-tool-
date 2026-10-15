@@ -5,11 +5,13 @@ import { project } from './projection.js';
 import { colorForLevel } from './colors.js';
 import { contourHitLayer, contoursLayer, pointsLayer, lineGen } from './canvas.js';
 import { insertVertexAt, deleteSegmentAt, selectContour, renderVertices } from './editing.js';
+import { updateSimplifyLabel } from './simplify.js';
 
 export function renderCanvas() {
   document.getElementById('canvas-hint').textContent = state.contours.length
     ? 'Tool: ' + state.tool + ' — click a line to select it.'
     : 'Load a basemap, drawing, or CSV to begin.';
+  updateSimplifyLabel();   // live vertex count through every edit
 
   // Contours
   const projectedContours = state.contours

@@ -335,6 +335,7 @@ table.preview th { background: #14161a; }
 }
 .slider-row input[type=range] { flex: 1; }
 .slider-row span { width: 24px; text-align: right; color: var(--text-dim); font-size: 11px; }
+.slider-row span#simplify-value { width: auto; min-width: 24px; white-space: nowrap; }
 
 a.link { color: var(--accent); text-decoration: none; }
 

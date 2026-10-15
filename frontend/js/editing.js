@@ -102,7 +102,15 @@ export function insertVertexAt(d, event) {
 //   line only had one segment left.
 // The cut is treated as a topology change, so `original` is rewritten to
 // match — "Reset selected line" restores the post-cut baseline, not the
-// pre-cut shape.
+// pre-cut shape. `traced` is rewritten too, so the vertex-reduction slider
+// simplifies the cut piece rather than restoring the pre-cut line; detail
+// already simplified away before the cut doesn't come back.
+function setBaseline(c, pts) {
+  c.coords = pts;
+  c.original = pts.map(p => p.slice());
+  c.traced = pts.map(p => p.slice());
+}
+
 export function deleteSegmentAt(d, event) {
   const idx = state.contours.findIndex(x => x.id === d.id);
   if (idx < 0) return;
@@ -124,8 +132,7 @@ export function deleteSegmentAt(d, event) {
   if (c.closed) {
     const k = bestSeg;
     const rotated = c.coords.slice(k + 1).concat(c.coords.slice(0, k + 1));
-    c.coords = rotated;
-    c.original = rotated.map(p => p.slice());
+    setBaseline(c, rotated);
     c.closed = false;
   } else {
     const k = bestSeg;
@@ -135,22 +142,20 @@ export function deleteSegmentAt(d, event) {
     const secondOk = second.length >= 2;
 
     if (firstOk && secondOk) {
-      c.coords = first;
-      c.original = first.map(p => p.slice());
+      setBaseline(c, first);
       state.contours.splice(idx + 1, 0, {
         id: state.nextId++,
         level: c.level,
+        traced: second.map(p => p.slice()),
         original: second.map(p => p.slice()),
         coords: second.map(p => p.slice()),
         closed: false,
         visible: c.visible,
       });
     } else if (firstOk) {
-      c.coords = first;
-      c.original = first.map(p => p.slice());
+      setBaseline(c, first);
     } else if (secondOk) {
-      c.coords = second;
-      c.original = second.map(p => p.slice());
+      setBaseline(c, second);
     } else {
       state.contours.splice(idx, 1);
       if (state.selectedId === c.id) state.selectedId = null;
