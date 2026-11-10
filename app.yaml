@@ -13,10 +13,8 @@ command:
   - "-c"
   - "uvicorn app:app --app-dir backend --host 0.0.0.0 --port $DATABRICKS_APP_PORT"
 
-env:
-  # LINZ Basemaps key for the aerial underlay, from the `linz-api-key` app resource (the
-  # workspace's `geo-databricks` secret scope, shared with the nz-geotechnics app). Served to
-  # the browser by GET /api/config. Rotating it needs only an app restart, not a redeploy.
-  # Note `valueFrom` here vs snake_case `value_from` in databricks.yml — the two differ.
-  - name: LINZ_API_KEY
-    valueFrom: linz-api-key
+# No `env` section. The LINZ basemap key used to come from the geo-databricks secret scope via
+# `valueFrom`; that was dropped so this app doesn't depend on another team's resources, and users
+# paste a key into the UI instead (GET /api/config then returns an empty key). If a key is ever
+# re-added, the `valueFrom` name must match an app resource declared in databricks.yml for EVERY
+# target — this file is shared, and a missing resource stops the app from starting.

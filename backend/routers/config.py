@@ -1,9 +1,10 @@
 """Runtime config for the browser.
 
-On Databricks the LINZ Basemaps key comes from a workspace secret (LINZ_API_KEY,
-see app.yaml), so the frontend fetches it here instead of needing a key pasted
-in. Locally the env var is normally unset and this returns an empty key, so
-config.js / the UI paste work exactly as before.
+If the server has a LINZ Basemaps key in the LINZ_API_KEY env var, the frontend
+fetches it here instead of needing a key pasted in. Nothing sets it at the
+moment — the Databricks deploy no longer wires a secret into it (see app.yaml) —
+so this returns an empty key and config.js / the UI paste are what's used. Kept
+so a server-side key can come back with config alone, no code change.
 
 The key ends up in tile URLs in the browser anyway, so serving it exposes
 nothing new — the app itself sits behind Databricks SSO.

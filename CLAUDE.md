@@ -34,7 +34,7 @@ if `pip`/`uvicorn` are "command not found", the venv isn't activated.
   `contours.py` (`/parse-csv`, `/generate`), `export.py` (`/export`),
   `dwg.py` (`/import-dwg` underlay, `/import-contours` editable contours),
   `utilities.py` (`/import-utilities` ArcGIS `.lpkx` underlay),
-  `config.py` (`/config` — LINZ key from the `LINZ_API_KEY` env var, for Databricks).
+  `config.py` (`/config` — LINZ key from the `LINZ_API_KEY` env var; currently unset everywhere).
 - `schemas.py` — all pydantic request models, shared across routers.
 - `interpolation.py` — IDW scattered points → regular grid (pure numpy). Self-contained
   behind `build_grid`/`idw_interpolate` so a kriging alternative could be swapped in.
@@ -146,10 +146,12 @@ Source → solid/dashed), since several `.lpkx` files load and toggle independen
 
 Deployed as a Databricks App via the bundle in `databricks.yml` (targets `staging`, `prod`;
 apps `settlement-contours-staging` / `-prod` on the same Arup workspaces as the sibling
-`geo-databricks-arup` repo). User-facing runbook: README → "Deploying to Databricks".
-Non-obvious points:
+`geo-databricks-arup` repo). **Deploy runbook (first prod deploy, releases, safety rules,
+troubleshooting): [`docs/DEPLOY.md`](docs/DEPLOY.md)** — the Arup laptop deploys from it; this
+Mac can't sign in to Arup Databricks. Non-obvious points:
 
-- **Stateless by design** — no UC Volume, no Lakebase, so no service-principal grants. If
+- **Stateless by design** — no UC Volume, no Lakebase, no secrets, so no app resources and no
+  service-principal grants. If
   persistence is ever added, follow `geo-databricks-arup/docs/DATABRICKS_DEPLOY.md` (Volume
   grants, auto-provisioned USE CATALOG lag) rather than reinventing it.
 - **`app.yaml` is the single source of runtime config** for every target; `databricks.yml`
@@ -166,9 +168,12 @@ Non-obvious points:
   never hand-edit it. `_find_converter` prefers PATH (Homebrew locally), then the vendored copy
   on Linux x86_64, running a chmod'ed temp copy if workspace sync dropped the exec bit. With
   neither, it raises `DwgImportError` → 422 "save as DXF".
-- **LINZ key**: priority is `config.js` → localStorage (UI paste) → `/api/config` (workspace
-  secret `geo-databricks/linz_api_key`, injected as `LINZ_API_KEY`). The server key is never
-  written to localStorage, so rotating the secret + restarting the app takes effect.
+- **LINZ key**: priority is `config.js` → localStorage (UI paste) → `/api/config` (the
+  `LINZ_API_KEY` env var, which nothing sets now). The app used to read the `geo-databricks`
+  team's secret scope; that was removed so it touches nothing of theirs (see the off-limits list
+  in `docs/DEPLOY.md`). Re-adding a server key means a scope owned by this project, declared as
+  an app resource for **both** targets: `app.yaml` is shared, and a `valueFrom` naming a missing
+  resource stops the app from starting.
 - `bundle deploy` ships the **working tree**, not git — commit and deploy staging → prod with
   an unchanged tree. `deploy` syncs files; `bundle run settlement_app` is what restarts onto them.
 

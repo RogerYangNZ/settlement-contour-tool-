@@ -1,8 +1,9 @@
 # Databricks Asset Bundle — declares the Settlement Contour Tool as a Databricks App.
+# Full runbook (first prod deploy, releases, troubleshooting): docs/DEPLOY.md.
 #
-#   databricks bundle validate -t staging
-#   databricks bundle deploy   -t staging                 # sync files + create/update the app
-#   databricks bundle run settlement_app -t staging       # snapshot the synced files and (re)start
+#   databricks bundle validate -t staging -p staging
+#   databricks bundle deploy   -t staging -p staging                 # sync files + create/update the app
+#   databricks bundle run settlement_app -t staging -p staging       # snapshot the synced files and (re)start
 #
 # Same Arup workspaces as the geo-databricks app (nz-geotechnics-staging / -prod), deployed
 # staging first, then prod with the SAME tree. `bundle deploy` ships your local working tree,
@@ -14,6 +15,13 @@
 # The tool is stateless (every upload is processed in memory and returned), so there is no UC
 # Volume, no database, and no service-principal grants to arrange — unlike geo-databricks.
 # Access is gated by Databricks SSO on the app.
+#
+# No app resources at all, not even a secret: the LINZ basemap key used to come from the
+# geo-databricks team's secret scope, which this app must not depend on. Users paste a key
+# into the UI instead. To bring a server-side key back, create a scope owned by this project,
+# add it as an app resource here, and add a `valueFrom` env entry in app.yaml — in BOTH
+# targets at once, since app.yaml is shared and a `valueFrom` naming a missing resource stops
+# the app from starting.
 #
 # DWG import uses vendor/linux-x86_64/dwg2dxf (built by .github/workflows/build-dwg2dxf.yml),
 # because the Apps runtime can't install LibreDWG. It must be present in the tree you deploy.
@@ -38,9 +46,6 @@ sync:
 variables:
   app_name:
     description: Databricks App name (lowercase letters, digits, hyphens; unique per workspace).
-  secret_scope:
-    description: Secret scope holding `linz_api_key` in the target workspace.
-    default: geo-databricks
 
 resources:
   apps:
@@ -48,14 +53,6 @@ resources:
       name: ${var.app_name}
       description: "Settlement contours from survey points (IDW), hand-editing, and DXF export."
       source_code_path: ${workspace.file_path}
-      resources:
-        # Optional: if the secret is missing the app still runs; the aerial basemap just needs
-        # a key pasted into the UI instead.
-        - name: linz-api-key
-          secret:
-            scope: ${var.secret_scope}
-            key: linz_api_key
-            permission: READ
       # Keep ONE instance (the default) — never set compute_min/max_instances. Nothing here
       # needs more, and there is no shared state to make scaling out safe.
 

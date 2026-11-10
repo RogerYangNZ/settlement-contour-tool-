@@ -24,8 +24,8 @@ const NZTM_TMS = {
 const NZTM_M_PER_TILEPX_Z0 = NZTM_TMS.extentAtZ0 / NZTM_TMS.tileSizePx;
 
 // API key priority: config.js (authoritative) -> localStorage (UI paste) ->
-// the server's key from /api/config (on Databricks, a workspace secret; fetched
-// in initBasemap) -> empty.
+// the server's key from /api/config (the LINZ_API_KEY env var, currently unset
+// everywhere; fetched in initBasemap) -> empty.
 export const basemap = {
   style: 'off',       // 'off' | 'aerial' | 'topographic'
   opacity: 0.6,

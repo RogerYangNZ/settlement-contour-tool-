@@ -128,7 +128,11 @@ settlement-contour-tool/
 
 The tool runs as a **Databricks App** on the Arup staging and prod workspaces,
 alongside the `nz-geotechnics` geo-databricks app. It is stateless — no
-Volume, no database — so deployment is just the app itself.
+Volume, no database, no secrets — so deployment is just the app itself.
+
+**Full runbook:** [`docs/DEPLOY.md`](docs/DEPLOY.md) — the first prod
+deploy, each later release, safety rules and troubleshooting. Follow that
+when deploying; this section is the summary.
 
 | Target | Workspace | App name | CLI profile |
 |---|---|---|---|
@@ -140,30 +144,27 @@ Volume, no database — so deployment is just the app itself.
 - Databricks CLI (set up with v1.17.0; `brew install databricks/tap/databricks`), logged in to each
   workspace: `databricks auth login --profile staging` (and `--profile prod`).
   Tokens expire — if a command says the refresh token is invalid, re-run this.
-- The LINZ key lives in each workspace's `geo-databricks` secret scope as
-  `linz_api_key` (already created for the geo-databricks app). Optional —
-  without it, users paste a key into the UI as they would locally.
 
 **Deploy** — always staging first, then the *same* tree to prod. `bundle
 deploy` ships your local working tree, not a git commit, so commit first and
 make sure `git status` is clean:
 
 ```bash
-databricks bundle validate -t staging
-databricks bundle deploy   -t staging            # sync files, create/update the app
-databricks bundle run settlement_app -t staging  # snapshot those files and (re)start
-databricks apps get settlement-contours-staging -p staging   # URL + status
+databricks bundle validate -t staging -p staging
+databricks bundle deploy   -t staging -p staging            # sync files, create/update the app
+databricks bundle run settlement_app -t staging -p staging  # snapshot those files and (re)start
+databricks apps get settlement-contours-staging -p staging  # URL + status
 ```
 
 Test on the staging URL, then repeat with `-t prod`. A code change needs both
 `deploy` *and* `run` — `deploy` alone uploads files while the app keeps serving
-the previous snapshot. To pick up a rotated secret without shipping code, use
-`databricks apps stop <app>` then `apps start <app>`.
+the previous snapshot. Arup stops idle apps quickly, so a `STOPPED` app is
+normal: `databricks apps start <app> -p <profile>` brings it back without a
+redeploy.
 
 **Access.** A new app is usable only by its creator and workspace admins. Grant
 `CAN_USE` to the right group in the app's Permissions tab (or `databricks apps
-update-permissions`); match whatever `nz-geotechnics-<env>` uses:
-`databricks apps get-permissions nz-geotechnics-staging -p staging`.
+update-permissions`). Which group is an open question — see `docs/DEPLOY.md`.
 
 **Differences from running locally**
 
@@ -173,8 +174,9 @@ update-permissions`); match whatever `nz-geotechnics-<env>` uses:
   `.github/workflows/build-dwg2dxf.yml` (to rebuild, bump the version in that
   file, push, then `git pull`). If it's ever missing from the deployed tree,
   `.dwg` uploads show a "save as DXF" message instead.
-- **LINZ basemap key** comes from the workspace secret via `GET /api/config`
-  (a key in `config.js` or pasted into the UI still takes priority).
+- **LINZ basemap key** — none is provided on Databricks; users paste their
+  own into the UI, as locally. (The app used to read the `geo-databricks`
+  team's secret; that was dropped so it depends on nothing of theirs.)
 - **Python 3.11** on Linux, and no system packages can be installed. Every pin
   in `requirements.txt` should have a prebuilt Linux x86_64 wheel for 3.11 —
   don't count on the runtime being able to compile one. The header of that
